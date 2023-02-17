@@ -13,13 +13,19 @@ use {
     std::cmp::Ordering,
 };
 
+/// PoolToken holds information about the specific
+/// token in the pool
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
 pub struct PoolToken {
     pub custody: Pubkey,
 
     // ratios have implied BPS_DECIMALS decimals
+    /// the target token_aum_USD/pool_aum_USD. Fees are
+    /// adjusted based on the distance between the target and real ratio
     pub target_ratio: u64,
+    // minimum token_aum_USD/pool_aum_USD
     pub min_ratio: u64,
+    // max token_aum_USD/pool_aum_USD
     pub max_ratio: u64,
 }
 
@@ -72,16 +78,25 @@ impl Pool {
             .price)
     }
 
+    /// get_entry fee
+    ///
+    /// fee = collateral_fee + size_fee
+    /// where
+    /// * collateral_fee: fee cost of adding collateral to the pool
+    /// * size_fee: Fee paid by opening a position of size
     pub fn get_entry_fee(
         &self,
         token_id: usize,
         collateral: u64,
-        size: u64,
+        size: u64, // size is the tokens*leverage
         custody: &Custody,
         token_price: &OraclePrice,
     ) -> Result<u64> {
+        // fee for posting collateral
         let collateral_fee =
             self.get_add_liquidity_fee(token_id, collateral, custody, token_price)?;
+
+        // fee for opening a position
         let size_fee = Self::get_fee_amount(custody.fees.open_position, size)?;
 
         math::checked_add(collateral_fee, size_fee)
@@ -172,20 +187,24 @@ impl Pool {
         token_out_ema_price: &OraclePrice,
         custody_in: &Custody,
     ) -> Result<OraclePrice> {
+        // use the lowest price
         let min_price = if token_in_price < token_in_ema_price {
             token_in_price
         } else {
             token_in_ema_price
         };
 
+        // use the lowest price out
         let max_price = if token_out_price > token_out_ema_price {
             token_out_price
         } else {
             token_out_ema_price
         };
 
+        // ratio = price_in / price_out
         let pair_price = min_price.checked_div(max_price)?;
 
+        // take the price and subtract spread
         self.get_price(
             &pair_price,
             &pair_price,
@@ -248,6 +267,8 @@ impl Pool {
         ))
     }
 
+    /// get_add_liquidity_fee calculates the dynamic fee
+    /// denominted in the token_id
     pub fn get_add_liquidity_fee(
         &self,
         token_id: usize,
@@ -330,6 +351,7 @@ impl Pool {
         custody: &Custody,
         curtime: i64,
     ) -> Result<u64> {
+        // get the profit and loss for the current position
         let (profit_usd, loss_usd, _) = self.get_pnl_usd(
             token_id,
             position,
@@ -340,6 +362,7 @@ impl Pool {
             false,
         )?;
 
+        // if profit -> margin = collateral + profit
         let current_margin_usd = if profit_usd > 0 {
             math::checked_add(position.collateral_usd, profit_usd)?
         } else if loss_usd <= position.collateral_usd {
@@ -348,6 +371,7 @@ impl Pool {
             0
         };
 
+        // if margin in account -> size_usd/current_margin = Leverage > 0
         if current_margin_usd > 0 {
             math::checked_as_u64(math::checked_div(
                 math::checked_mul(position.size_usd as u128, Perpetuals::BPS_POWER)?,
@@ -601,6 +625,7 @@ impl Pool {
             let token_amount_usd =
                 token_price.get_asset_amount_usd(custody.assets.owned, custody.decimals)?;
 
+            // aggregate pool amount in usd
             pool_amount_usd = math::checked_add(pool_amount_usd, token_amount_usd as u128)?;
 
             if custody.pricing.use_unrealized_pnl_in_aum {
@@ -643,6 +668,9 @@ impl Pool {
         Ok(pool_amount_usd)
     }
 
+    /// get_fee_amount
+    ///
+    /// fee_amount = amount*fee / 10^4
     pub fn get_fee_amount(fee: u64, amount: u64) -> Result<u64> {
         if fee == 0 || amount == 0 {
             return Ok(0);
@@ -653,7 +681,11 @@ impl Pool {
         )?)
     }
 
-    // private helpers
+    /// get_new_ratio Calculates the new token AUM and pool AUM denominated in USD.
+    ///
+    /// AUM: Asset under management
+    ///
+    /// Returns:  Token_AUM / Pool_AUM
     fn get_new_ratio(
         &self,
         amount_add: u64,
@@ -747,6 +779,7 @@ impl Pool {
                 min_price.exponent,
             )?;
 
+            // reduce price by spread
             let price = if spread < min_price.price {
                 math::checked_sub(min_price.price, spread)?
             } else {
@@ -760,6 +793,18 @@ impl Pool {
         }
     }
 
+    /// get_fee dynamically calculates the fees based on the composition of the pool
+    ///
+    /// Based on the amount added or removed by a specific token, calculate the fees
+    ///
+    /// If the user is moving the token_ratio towards the target_weight
+    /// then fees are reduced.
+    ///
+    /// If the user is moving the token_ratio away from the target_weight
+    /// then the fees are increased
+    ///
+    /// ## Variables
+    /// * token_ratio = token_AUM_USD/pool_AUM_USD
     fn get_fee(
         &self,
         token_id: usize,
@@ -778,6 +823,8 @@ impl Pool {
         let fee = match new_ratio.cmp(&token.target_ratio) {
             Ordering::Equal => base_fee,
             Ordering::Greater => {
+                // If new_ratio > target_ratio
+
                 let max_fee_change = math::checked_as_u64(math::checked_div(
                     math::checked_mul(custody.fees.max_increase as u128, base_fee as u128)?,
                     Perpetuals::BPS_POWER,
@@ -796,12 +843,12 @@ impl Pool {
                                 )? as u128,
                                 max_fee_change as u128,
                             )?,
-                            math::checked_sub(token.max_ratio, token.target_ratio)? as u128,
-                        )?)?,
+                        )?,
                     )?
                 }
             }
             Ordering::Less => {
+                // If new_token_ratio < target_ratio then reduce fees
                 let max_fee_change = math::checked_as_u64(math::checked_div(
                     math::checked_mul(custody.fees.max_decrease as u128, base_fee as u128)?,
                     Perpetuals::BPS_POWER,

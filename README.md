@@ -4,7 +4,15 @@
 
 Solana Perpetuals protocol is an open-source implementation of a non-custodial decentralized exchange that supports leveraged trading in a variety of assets.
 
+<<<<<<< HEAD
+
 # Sandblizzard
+
+=======
+
+## Sandblizzard
+
+> > > > > > > 4a298b9 (Update main readme.md)
 
 Please check out separate [docs](./docs/notes.md)
 

@@ -38,7 +38,8 @@
 </script>
 
 <div>
-	<WalletProvider {localStorageKey} {wallets} autoConnect />
+	<div class="container py-3"> <WalletProvider {localStorageKey} {wallets} autoConnect /></div>
+	
 	<div>
 		<div class="wrapper-app">
 			<div>
@@ -46,21 +47,93 @@
 			</div>
 			<div class="title">
 				<h1 class="text-8xl sky-300 font-pixel">SANDBLIZZARD</h1>
+				<h2 class="text-4xl sky-300 font-pixel">PERPETUAL DEX</h2>
 			</div>
 
-			<div class=" container mx-auto gray-200 flex flex-col m-6 gap-y-1 bg-slate-800">
-				<p class="font-pixel mx-auto text-4xl">Start earning</p>
-				<div class="container mx-auto flex flex-row max-w-md bg-slate-600 justify-center">
+			<div class=" container mx-auto flex flex-col m-6 gap-y-1">
+				<div class="container mx-auto flex flex-col gap-3 py-4 max-w-xs bg-green-900 justify-items-center items-center px-5 rounded-md">
 					<div
-						class="container flex flex-column bg-slate-500 mx-5 mt-5 gap-10 justify-center ext-8xl sky-300 "
+						class="container flex flex-row bg-black   justify-center ext-8xl sky-300"
 					>
-						<div><a class={`${$page.route.id === "/long" ? "active-action":""}`} href="/long">Long</a></div>
-						<div><a href="/short">Short</a></div>
-						<div>
-							<a href="/swap">Swap</a>
-						</div>
-						<div><a href="/earn">Earn</a></div>
+						<div class="px-1 py-2"><a class={`${$page.route.id === "/long" ? "active-action":""}`} href="/long">Long</a></div>
+						<div class="px-1 py-2" ><a class={`${$page.route.id === "/short" ? "active-action":""}`} href="/short">Short</a></div>
+						<div class="px-1 py-2">
+							<a class={`${$page.route.id === "/swap" ? "active-action":""}`} href="/swap">Swap</a>
+						</div >
+						<div class="px-1 py-2"><a class={`px-8 py-2 rounded-sm ${$page.route.id === "/earn" ? "active-action":""}`} href="/earn">Earn</a></div>
 					</div>
+
+					<div class="container max-w-lg">
+						<div class="container flex flex-col j">
+							<div class="container flex flex-row justify-between ">
+									<p class="text-base">You pay</p>
+									<div class="flex flex-row items-center gap-1"><p class="text-base">4,3223</p> <p class="text-sm">sol balance</p></div>
+							</div>
+							<div class="container bg-slate-800 py-1 px-2 flex flex-row justify-around rounded-md  ">
+								<div class="flex items-center">
+									<img />
+									<p>SOL</p>
+									<p>></p>
+								</div>
+								<div class="flex flex-col">
+									<p>5.5</p>
+									<p class="text-sm">$ 90.19</p>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="container max-w-lg">
+						<div class="container flex flex-col j">
+							<div class="container flex flex-row justify-between ">
+									<p class="text-base">You short</p>
+									
+							</div>
+							<div class="container bg-slate-800 py-1 px-2 flex flex-row justify-around rounded-md  ">
+								<div class="flex items-center">
+									<img />
+									<p>SOL</p>
+									<p>></p>
+								</div>
+								<div class="flex flex-col">
+									<p>5.5</p>
+									<p class="text-sm">$ 90.19</p>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="container max-w-lg">
+						<div class="container flex flex-col ">
+							<div class="container flex flex-row justify-between ">
+									<p class="text-base">Pool</p>
+									
+							</div>
+							<div class="container bg-slate-800 py-1 px-2 flex flex-row justify-around rounded-md  ">
+								<div class="flex items-center">
+									<img />
+									<p>My awesome pool</p>
+								</div>
+								<div class="flex flex-col">
+									>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="container max-w-lg">
+						<div class="container flex flex-row justify-between items-center ">
+							<p class="text-small">Leverage</p>
+							<div> --------------</div>
+							<div> 15x</div>
+						</div>
+					</div>
+
+					<div class="container max-w-lg">
+						<button class="container bg-fuchsia-500 	rounded-md">Place Order</button>
+					</div>
+				</div>
+				<div class="container mx-auto flex flex-col gap-3 py-4 max-w-xs bg-slate-900 justify-items-center items-center px-5 rounded-md">
+					<button class="container bg-fuchsia-500 	rounded-md">Place Order</button>
 				</div>
 			</div>
 		</div>
@@ -70,7 +143,6 @@
 
 <style style="postcss">
 	:global(body) {
-		padding: 100px;
 		margin: 0;
 		background-color: #000000;
 		color: aliceblue;
@@ -89,6 +161,10 @@
 		background-color: white;
 		color: blue;
 	}
+a:active{
+	background-color: blue;
+}
+
 	.title {
 		text-align: center;
 		color: white;

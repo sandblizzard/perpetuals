@@ -1,45 +1,49 @@
 <script lang="ts">
-   import { page } from '$app/stores';
+	import { page } from '$app/stores';
 
-	
-	import { onMount } from 'svelte';
-	import { clusterApiUrl } from '@solana/web3.js';
-	import { WalletProvider } from '@svelte-on-solana/wallet-adapter-ui';
-	import { AnchorConnectionProvider } from '@svelte-on-solana/wallet-adapter-anchor';
+	import Header from '../components/header.svelte';
+
 	import '../app.css';
 	import { WalletMultiButton } from '@svelte-on-solana/wallet-adapter-ui';
+	import type { Event } from '@project-serum/anchor';
 
-	const localStorageKey = 'walletAdapter';
-	const network = clusterApiUrl('devnet');
-	let wallets;
+	// Input
+	let amount: string;
+	let textTimeout: any;
+	const handleAmountChange = (am: KeyboardEvent) => {
+		clearTimeout(textTimeout);
+		textTimeout = setTimeout(() => {
+			console.log('start');
+			const parts = (am.target as HTMLInputElement).value.replaceAll(',', '').split('.');
+			const numberPart = parts[0];
+			const decimalPart = parts[1];
+			amount =
+				numberPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (decimalPart ? '.' + decimalPart : '');
+		}, 500);
+	};
 
-
-	console.log("page: ",$page.route.id)
-
-	onMount(async () => {
-		const {
-			PhantomWalletAdapter,
-			SlopeWalletAdapter,
-			SolflareWalletAdapter,
-			SolletExtensionWalletAdapter,
-			TorusWalletAdapter
-		} = await import('@solana/wallet-adapter-wallets');
-
-		const walletsMap = [
-			new PhantomWalletAdapter(),
-			new SlopeWalletAdapter(),
-			new SolflareWalletAdapter(),
-			new SolletExtensionWalletAdapter(),
-			new TorusWalletAdapter()
-		];
-
-		wallets = walletsMap;
-	});
+	const actions = [
+		{
+			name: 'Long',
+			path: '/long'
+		},
+		{
+			name: 'Short',
+			path: '/short'
+		},
+		{
+			name: 'Swap',
+			path: '/swap'
+		},
+		{
+			name: 'Earn',
+			path: '/earn'
+		}
+	];
 </script>
 
 <div>
-	<div class="container py-3"> <WalletProvider {localStorageKey} {wallets} autoConnect /></div>
-	
+	<Header />
 	<div>
 		<div class="wrapper-app">
 			<div>
@@ -50,90 +54,97 @@
 				<h2 class="text-4xl sky-300 font-pixel">PERPETUAL DEX</h2>
 			</div>
 
-			<div class=" container mx-auto flex flex-col m-6 gap-y-1">
-				<div class="container mx-auto flex flex-col gap-3 py-4 max-w-xs bg-green-900 justify-items-center items-center px-5 rounded-md">
-					<div
-						class="container flex flex-row bg-black   justify-center ext-8xl sky-300"
-					>
-						<div class="px-1 py-2"><a class={`${$page.route.id === "/long" ? "active-action":""}`} href="/long">Long</a></div>
-						<div class="px-1 py-2" ><a class={`${$page.route.id === "/short" ? "active-action":""}`} href="/short">Short</a></div>
-						<div class="px-1 py-2">
-							<a class={`${$page.route.id === "/swap" ? "active-action":""}`} href="/swap">Swap</a>
-						</div >
-						<div class="px-1 py-2"><a class={`px-8 py-2 rounded-sm ${$page.route.id === "/earn" ? "active-action":""}`} href="/earn">Earn</a></div>
-					</div>
+			<div class=" container mx-auto flex flex-col m-6">
+				<div
+					class={`container box ${$page.route.id.replace(
+						'/',
+						''
+					)}-border mx-auto py-4 max-w-xs bg-slate-900  justify-items-center items-center px-5 rounded-md`}
+				>
+					<div class="flex flex-col gap-5">
+						<div class=" flex flex-row justify-center">
+							<div class="container flex flex-row bg-black justify-center ext-8xl sky-300">
+								{#each actions as action}
+									<div class="py-2">
+										<a
+											class={`px-4 py-2 rounded-base text-sm font-pixel ${
+												$page.route.id === action.path ? 'active-action' : ''
+											}`}
+											href={action.path}>{action.name}</a
+										>
+									</div>
+								{/each}
+							</div>
+							<div class="w-12 flex justify-center">
+								<img class="cursor-pointer" height="10px" width="auto" src="drop.png" />
+							</div>
+						</div>
 
-					<div class="container max-w-lg">
-						<div class="container flex flex-col j">
-							<div class="container flex flex-row justify-between ">
+						<div class="container max-w-lg">
+							<div class="container flex flex-col j">
+								<div class="container flex flex-row justify-between ">
 									<p class="text-base">You pay</p>
-									<div class="flex flex-row items-center gap-1"><p class="text-base">4,3223</p> <p class="text-sm">sol balance</p></div>
-							</div>
-							<div class="container bg-slate-800 py-1 px-2 flex flex-row justify-around rounded-md  ">
-								<div class="flex items-center">
-									<img />
-									<p>SOL</p>
-									<p>></p>
+									<div class="flex flex-row items-center gap-1">
+										<p class="text-base">4,3223</p>
+										<p class="text-sm">sol balance</p>
+									</div>
 								</div>
-								<div class="flex flex-col">
-									<p>5.5</p>
-									<p class="text-sm">$ 90.19</p>
+								<div
+									class="container bg-slate-800 py-1 px-5 flex flex-row justify-between rounded-md  "
+								>
+									<div class="flex items-center">
+										<img />
+										<p>SOL</p>
+										<p>></p>
+									</div>
+									<div class="flex flex-col">
+										<input
+											bind:value={amount}
+											on:keypress={handleAmountChange}
+											placeholder="0.0"
+											name="amount"
+											type="text"
+											class="text-base outline-none  text-right bg-transparent placeholder-shown:border-gray-500"
+										/>
+										<p class="text-sm text-slate-600 text-right">$ 0</p>
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
 
-					<div class="container max-w-lg">
-						<div class="container flex flex-col j">
-							<div class="container flex flex-row justify-between ">
-									<p class="text-base">You short</p>
-									
-							</div>
-							<div class="container bg-slate-800 py-1 px-2 flex flex-row justify-around rounded-md  ">
-								<div class="flex items-center">
-									<img />
-									<p>SOL</p>
-									<p>></p>
+						<div class="container max-w-lg">
+							<div class="container flex flex-col j">
+								<div class="container flex flex-row justify-between ">
+									<p class="text-base">You short position</p>
 								</div>
-								<div class="flex flex-col">
-									<p>5.5</p>
-									<p class="text-sm">$ 90.19</p>
+								<div
+									class="container bg-slate-800 py-1 px-2 flex flex-row justify-between rounded-md  "
+								>
+									<div class="flex items-center">
+										<img />
+										<p>SOL</p>
+										<p>></p>
+									</div>
+									<div class="flex flex-col">
+										<p class="text-base text-slate-800">5.5</p>
+										<p class="text-sm">$ 90.19</p>
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
 
-					<div class="container max-w-lg">
-						<div class="container flex flex-col ">
-							<div class="container flex flex-row justify-between ">
-									<p class="text-base">Pool</p>
-									
-							</div>
-							<div class="container bg-slate-800 py-1 px-2 flex flex-row justify-around rounded-md  ">
-								<div class="flex items-center">
-									<img />
-									<p>My awesome pool</p>
-								</div>
-								<div class="flex flex-col">
-									>
-								</div>
+						<div class="container max-w-lg">
+							<div class="container flex flex-row justify-between items-center ">
+								<p class="text-small">Leverage</p>
+								<div>--------------</div>
+								<div>15x</div>
 							</div>
 						</div>
-					</div>
-					<div class="container max-w-lg">
-						<div class="container flex flex-row justify-between items-center ">
-							<p class="text-small">Leverage</p>
-							<div> --------------</div>
-							<div> 15x</div>
-						</div>
-					</div>
 
-					<div class="container max-w-lg">
-						<button class="container bg-fuchsia-500 	rounded-md">Place Order</button>
+						<div class="container max-w-lg">
+							<button class="container bg-fuchsia-500 rounded-md">Place Order</button>
+						</div>
 					</div>
-				</div>
-				<div class="container mx-auto flex flex-col gap-3 py-4 max-w-xs bg-slate-900 justify-items-center items-center px-5 rounded-md">
-					<button class="container bg-fuchsia-500 	rounded-md">Place Order</button>
 				</div>
 			</div>
 		</div>
@@ -152,6 +163,62 @@
 		font-family: pixel;
 		font-size: 24px;
 	}
+
+	@keyframes glower {
+		0% {
+			background-position: 0 0;
+		}
+
+		100% {
+			background-position: 400% 400%;
+		}
+	}
+	.box {
+		position: relative;
+		display: block;
+	}
+	.long-border:before {
+		content: '';
+		position: absolute;
+		border-radius: 5px;
+		left: -2px;
+		top: -2px;
+		background: linear-gradient(45deg, transparent, #00ff66, transparent);
+		background-size: 400%;
+		width: calc(100% + 5px);
+		height: calc(100% + 5px);
+		z-index: -1;
+		animation: glower 10s linear infinite;
+	}
+
+	.short-border:before {
+		content: '';
+		position: absolute;
+		border-radius: 5px;
+		left: -2px;
+		top: -2px;
+		background: linear-gradient(45deg, transparent, red, transparent);
+		background-size: 400%;
+		width: calc(100% + 5px);
+		height: calc(100% + 5px);
+		z-index: -1;
+		animation: glower 10s linear infinite;
+	}
+
+	.swap-border:before {
+		content: '';
+		position: absolute;
+		border-radius: 5px;
+		left: -2px;
+		top: -2px;
+		background: linear-gradient(45deg, transparent, blue, transparent);
+		background-size: 400%;
+		width: calc(100% + 5px);
+		height: calc(100% + 5px);
+		z-index: -1;
+		animation: glower 10s linear infinite;
+	}
+
 	.wrapper-app {
 		height: 100vh;
 		font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
@@ -161,9 +228,6 @@
 		background-color: white;
 		color: blue;
 	}
-a:active{
-	background-color: blue;
-}
 
 	.title {
 		text-align: center;

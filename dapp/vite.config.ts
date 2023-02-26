@@ -23,7 +23,8 @@ const config = {
 	define: {
 		// This makes @project-serum/anchor 's process error not happen since it replaces all instances of process.env.BROWSER with true
 		'process.env.BROWSER': true,
-		'process.env.NODE_DEBUG': JSON.stringify('')
+		'process.env.NODE_DEBUG': JSON.stringify(''),
+		'process.env.HELIUS_API_KEY': JSON.stringify(process.env.HELIUS_API_KEY)
 	},
 	build: {
 		target: 'esnext',

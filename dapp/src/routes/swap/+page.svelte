@@ -13,25 +13,6 @@
 				numberPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (decimalPart ? '.' + decimalPart : '');
 		}, 500);
 	};
-
-	const actions = [
-		{
-			name: 'Long',
-			path: '/long'
-		},
-		{
-			name: 'Short',
-			path: '/short'
-		},
-		{
-			name: 'Swap',
-			path: '/swap'
-		},
-		{
-			name: 'Earn',
-			path: '/earn'
-		}
-	];
 </script>
 
 <div class="container">

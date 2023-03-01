@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 
 	import Header from '../components/header.svelte';
 
 	import '../app.css';
 	import { WalletMultiButton } from '@svelte-on-solana/wallet-adapter-ui';
+	import { tokensStore, type Tokens } from '../helpers/globalStore';
 
 	const actions = [
 		{
@@ -24,6 +26,13 @@
 			path: '/earn'
 		}
 	];
+
+	onMount(async () => {
+		const allTokens = await fetch('https://cache.jup.ag/all-tokens');
+		const tokens: Tokens = await allTokens.json();
+
+		tokensStore.set(tokens);
+	});
 </script>
 
 <div>

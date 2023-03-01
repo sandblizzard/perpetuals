@@ -4,10 +4,9 @@
 	import { WalletMultiButton } from '@svelte-on-solana/wallet-adapter-ui';
 	import { onMount } from 'svelte';
 	import { getTokenBalance } from '../../helpers';
-	import { token } from '@project-serum/anchor/dist/cjs/utils';
 	import { BigNumber as BN } from 'bignumber.js';
 	import Assistance from '../../components/assistance.svelte';
-	import { seed } from '@project-serum/anchor/dist/cjs/idl';
+	import { tokensStore, type Token, type Tokens } from '../../helpers/globalStore';
 
 	const amountWithDecimals = (amount: string): string => {
 		const parts = amount.split('.');
@@ -33,19 +32,8 @@
 		}, 500);
 	};
 
-	type Token = {
-		address: string;
-		chainId: number;
-		decimals: number;
-		logoURI: string;
-		name: string;
-		symbol: string;
-		priceUSD?: number;
-	};
-
 	let leverage = 15;
-	let tokens: Token[] = [];
-	let filteredTokens: Token[] = [];
+	let filteredTokens: Tokens = [];
 	let defaultToken: Token | undefined;
 	let defaultTokenBalance = BN(0);
 
@@ -58,14 +46,13 @@
 	}
 
 	let defaultTokenPrice = new BN(0);
-	const tokenMock = ['Saber2gLauYim4Mvftnrasomsv6NvAuncvMEZwcLpD1'];
-	onMount(async () => {
-		const allTokens = await fetch('https://cache.jup.ag/all-tokens');
-		const json: Token[] = await allTokens.json();
-		tokens = json.filter((token) => tokenMock.includes(token.address));
-		tokens = json;
-		defaultToken = tokens[0];
-		defaultToken.priceUSD = 1.1;
+
+	tokensStore.subscribe((tokens) => {
+		if (tokens.length > 0) {
+			defaultToken = tokens[0];
+			defaultToken.priceUSD = 1.1;
+			filteredTokens = tokens;
+		}
 	});
 
 	let searchRef: HTMLInputElement = null;
@@ -85,11 +72,11 @@
 	let tokenSearchTerm = '';
 	$: {
 		if (tokenSearchTerm) {
-			filteredTokens = tokens.filter((token) =>
+			filteredTokens = $tokensStore.filter((token) =>
 				token.symbol.toLowerCase().includes(tokenSearchTerm.toLowerCase())
 			);
 		} else {
-			filteredTokens = tokens;
+			filteredTokens = $tokensStore;
 		}
 	}
 
@@ -101,7 +88,7 @@
 		}
 	}
 
-	let selectedTokenIndex: number = -1;
+	let selectedTokenIndex: number = 0;
 	let selectedTokenId: string = '';
 	let previousMod = 0;
 	const handleKeydown = (event: KeyboardEvent) => {
@@ -109,8 +96,6 @@
 			showTokenDropdown = false;
 		}
 		if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-			const items = filteredTokens.map((token) => document.getElementById(token.symbol));
-
 			if (selectedTokenIndex === -1) {
 				selectedTokenIndex = 0;
 			} else {
@@ -131,18 +116,9 @@
 
 		const searchTokenList = document.getElementById('searchTokenList');
 		const hoverToken = document.getElementById(selectedTokenId);
-		console.log(
-			'searchTokenList.clientHeight',
-			searchTokenList.clientHeight,
-			'searchTokenList.scrollTop',
-			searchTokenList.scrollTop,
-			'offsetTop',
-			hoverToken.offsetTop
-		);
 
 		const currentMod = hoverToken.offsetTop % searchTokenList.clientHeight;
 
-		console.log('previousMod', previousMod, 'currentMod', currentMod);
 		if (previousMod > currentMod) {
 			searchTokenList.scrollTo(0, hoverToken.offsetTop);
 		}
@@ -202,6 +178,12 @@
 										<div class="text-xs text-slate-600">{token.name}</div>
 									</button>
 								</div>
+								{#if token.amount}
+									<div class="flex flex-col mr-5">
+										<div class="text-xs text-slate-100">{token.amount}</div>
+										<div class="text-xs text-slate-100">{`$ ${token.amountUSD}`}</div>
+									</div>
+								{/if}
 							</li>
 						{/each}
 					</ul>

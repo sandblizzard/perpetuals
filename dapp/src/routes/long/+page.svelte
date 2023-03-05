@@ -2,270 +2,171 @@
 	import { Slider } from 'fluent-svelte';
 	import { walletStore } from '@svelte-on-solana/wallet-adapter-core';
 	import { WalletMultiButton } from '@svelte-on-solana/wallet-adapter-ui';
-	import { onMount } from 'svelte';
-	import { getTokenBalance } from '../../helpers';
-	import { BigNumber as BN } from 'bignumber.js';
-	import Assistance from '../../components/assistance.svelte';
-	import { tokensStore, type Token, type Tokens } from '../../helpers/globalStore';
+	import autoAnimate from '@formkit/auto-animate';
 
-	const amountWithDecimals = (amount: string): string => {
-		const parts = amount.split('.');
-		const numberPart = parts[0];
-		const decimalPart = parts[1];
-		return (
-			numberPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (decimalPart ? '.' + decimalPart : '')
-		);
-	};
+	import { BigNumber as BN } from 'bignumber.js';
+	import TokenInput from '../../components/tokenInput.svelte';
+	import type { Token } from '../../helpers/globalStore';
+	import { page } from '$app/stores';
+	import { prettyAmount } from '../../helpers';
+	import { actions } from '../../types';
 
 	// Input
-	let displayAmount: string = '0';
-	let textTimeout: any;
-	const handleAmountChange = (am: KeyboardEvent) => {
-		clearTimeout(textTimeout);
-		textTimeout = setTimeout(() => {
-			const inputValue = (am.target as HTMLInputElement).value;
-			if (inputValue) {
-				const val = inputValue.replaceAll(',', '');
-				displayAmount = amountWithDecimals(val);
-				defaultTokenPrice = new BN(val).times(new BN(defaultToken.priceUSD));
-			}
-		}, 500);
-	};
-
 	let leverage = 15;
-	let filteredTokens: Tokens = [];
-	let defaultToken: Token | undefined;
 	let defaultTokenBalance = BN(0);
 
-	$: {
-		// FIXME: Display loader instead
-		defaultTokenBalance = new BN(0);
-		getTokenBalance(defaultToken?.address ?? '', $walletStore?.publicKey).then((res) => {
-			defaultTokenBalance = res;
-		});
+	// tokens
+	let selectedBaseToken: Token | undefined;
+	let selectedLeverageToken: Token | undefined;
+
+	let borrowFeePerHr = 0.0001;
+	let availableLiquidityUSD = '200000';
+
+	// Amounts
+	let baseTokenAmount: string | undefined;
+	let leveragedTokenAmount: string | undefined;
+
+	let showQuote = false;
+
+	function calculateLeveragedTokenAmount(prettyAmount: string | undefined, leverage: number) {
+		if (!prettyAmount) return undefined;
+		const amount = prettyAmount.replaceAll(',', '');
+		if (amount === '') {
+			return '0';
+		}
+		const amountBN = new BN(amount);
+		const amountUSD = amountBN.times(selectedBaseToken?.priceUSD ?? '0');
+		const leverageBN = new BN(leverage);
+		const leverageUSD = amountUSD.times(leverageBN);
+		const leverageAmount = leverageUSD.dividedBy(selectedLeverageToken?.priceUSD ?? '0');
+		return leverageAmount.isNaN() ? '0' : leverageAmount.toString();
 	}
+	// Update leverage token amount on baseTokenAmount change
+	$: leveragedTokenAmount = calculateLeveragedTokenAmount(baseTokenAmount, leverage);
 
-	let defaultTokenPrice = new BN(0);
-
-	tokensStore.subscribe((tokens) => {
-		if (tokens.length > 0) {
-			defaultToken = tokens[0];
-			defaultToken.priceUSD = 1.1;
-			filteredTokens = tokens;
-		}
-	});
-
-	let searchRef: HTMLInputElement = null;
-	let showTokenDropdown = false;
-	let leveragePosition = '0';
-	let leveragePositionUSD = '0';
-	$: {
-		const amount = displayAmount.replaceAll(',', '');
-		leveragePosition = new BN(leverage).times(new BN(amount)).toString();
-		leveragePositionUSD = amountWithDecimals(
-			new BN(leveragePosition).times(defaultToken?.priceUSD ?? '0').toString()
-		);
-		leveragePosition = amountWithDecimals(leveragePosition);
-	}
-
-	// Token search
-	let tokenSearchTerm = '';
-	$: {
-		if (tokenSearchTerm) {
-			filteredTokens = $tokensStore.filter((token) =>
-				token.symbol.toLowerCase().includes(tokenSearchTerm.toLowerCase())
-			);
-		} else {
-			filteredTokens = $tokensStore;
-		}
-	}
-
-	$: {
-		if (showTokenDropdown && searchRef) {
-			setTimeout(() => {
-				searchRef.focus();
-			}, 200);
-		}
-	}
-
-	let selectedTokenIndex: number = 0;
-	let selectedTokenId: string = '';
-	let previousMod = 0;
-	const handleKeydown = (event: KeyboardEvent) => {
-		if (event.key === 'Escape') {
-			showTokenDropdown = false;
-		}
-		if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-			if (selectedTokenIndex === -1) {
-				selectedTokenIndex = 0;
-			} else {
-				if (event.key === 'ArrowDown') {
-					selectedTokenIndex += 1;
-				} else {
-					selectedTokenIndex -= 1;
-				}
-			}
-			selectedTokenId = filteredTokens[selectedTokenIndex].symbol;
-		}
-
-		if (event.key === 'Enter' && selectedTokenIndex !== -1) {
-			defaultToken = filteredTokens[selectedTokenIndex];
-			showTokenDropdown = false;
-			selectedTokenIndex = -1;
-		}
-
-		const searchTokenList = document.getElementById('searchTokenList');
-		const hoverToken = document.getElementById(selectedTokenId);
-
-		const currentMod = hoverToken.offsetTop % searchTokenList.clientHeight;
-
-		if (previousMod > currentMod) {
-			searchTokenList.scrollTo(0, hoverToken.offsetTop);
-		}
-		previousMod = hoverToken.offsetTop % searchTokenList.clientHeight;
-	};
+	$: showQuote = new BN(baseTokenAmount?.replaceAll(',', '')).gt(0) ? true : false;
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
-
 <div class="container flex flex-col gap-5">
-	<div class="container max-w-lg">
-		<div class="container flex flex-col j">
-			<div class="container flex flex-row justify-between ">
-				<p class="text-base">You pay</p>
+	<div
+		class={`container box ${$page.route.id.replace(
+			'/',
+			''
+		)}-border mx-auto py-4 max-w-xs bg-slate-900  justify-items-center items-center px-5 rounded-md`}
+	>
+		<div class="flex flex-col gap-8">
+			<div class=" flex flex-row justify-center">
+				<div class="container flex flex-row bg-black justify-center ext-8xl sky-300">
+					{#each actions as action}
+						<div class="py-2">
+							<a
+								class={`px-4 py-2 rounded-base text-sm font-pixel ${
+									$page.route.id === action.path ? 'active-action' : ''
+								}`}
+								href={action.path}>{action.name}</a
+							>
+						</div>
+					{/each}
+				</div>
+				<div class="w-12 flex justify-center">
+					<img class="cursor-pointer" height="10px" width="auto" src="drop.png" />
+				</div>
+			</div>
+			<div class="container flex flex-col gap-5">
+				<div class="container max-w-lg">
+					<div class="container flex flex-col j">
+						<div class="container flex flex-row justify-between ">
+							<p class="text-base">Select base token</p>
+							{#if $walletStore.connected && selectedBaseToken?.symbol}
+								<div class="flex flex-row items-center gap-1">
+									<p class="text-base">{defaultTokenBalance}</p>
+									<p class="text-sm">{`${selectedBaseToken?.symbol} balance`}</p>
+								</div>
+							{/if}
+						</div>
+						<TokenInput
+							name={'base'}
+							bind:tokenAmount={baseTokenAmount}
+							bind:selectedToken={selectedBaseToken}
+							leverage={0}
+						/>
+					</div>
+				</div>
+
+				<div class="container max-w-lg">
+					<div class="container flex flex-col j">
+						<div class="container flex flex-row justify-between ">
+							<p class="text-base">You long position</p>
+						</div>
+
+						<TokenInput
+							name="leverage"
+							bind:tokenAmount={leveragedTokenAmount}
+							bind:selectedToken={selectedLeverageToken}
+							bind:leverage
+						/>
+					</div>
+				</div>
+
+				<div class="container max-w-lg z-1">
+					<div class=" z-1 container flex flex-row justify-between items-center gap-2 ">
+						<Slider
+							class="z-1"
+							bind:value={leverage}
+							tooltip={false}
+							step={5}
+							max={100}
+							ticks={[5, 10, 15, 20, 100]}
+							suffix="%"
+						/>
+
+						<div class="relative ">
+							<input
+								bind:value={leverage}
+								name="amount"
+								type="text"
+								class="px-3 text-base rounded font-pixel text-lg outline-none w-14 text-left bg-slate-800  placeholder-shown:border-gray-500"
+							/>
+							<div class="input-x" />
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="container max-w-lg">
 				{#if $walletStore.connected}
-					<div class="flex flex-row items-center gap-1">
-						<p class="text-base">{defaultTokenBalance}</p>
-						<p class="text-sm">{`${defaultToken?.symbol} balance`}</p>
+					<button class="container bg-fuchsia-500 rounded-md">Place Order</button>
+				{:else}
+					<div class="flex  justify-center">
+						<WalletMultiButton>Connect to place order</WalletMultiButton>
 					</div>
 				{/if}
 			</div>
+		</div>
+	</div>
+	<div use:autoAnimate={{ duration: 200 }}>
+		{#if showQuote}
 			<div
-				class="container relative bg-slate-800 py-1 px-5 flex flex-row justify-between rounded-md  "
+				class="container mx-auto py-4 max-w-xs bg-slate-900  justify-items-left items-left px-5 rounded-md flex flex-col gap-2"
 			>
-				<div class={`flex flex-col justify-center ${showTokenDropdown ? '' : 'hidden'}`}>
-					<input
-						id="searchToken"
-						bind:this={searchRef}
-						bind:value={tokenSearchTerm}
-						type="text"
-						placeholder="Search"
-						class="z-1000 w-20 text-slate-200 outline-none text-left bg-transparent placeholder-shown:border-gray-500"
-					/>
-					<ul
-						id="searchTokenList"
-						class="flex gap-2  left-0 right-0 flex-col  z-10 absolute max-h-60 w-120 overflow-scroll top-12 bg-slate-800 rounded-md"
-					>
-						{#each filteredTokens as token, index}
-							<li
-								tabindex={index}
-								id={`${token.symbol}`}
-								class={`flex flex-row gap-5 h-10 justify-between hover:bg-sky-700 focus:bg-sky-700 cursor-pointer ${
-									index === selectedTokenIndex ? 'bg-sky-700' : ''
-								}`}
-							>
-								<div class="flex flex-row ml-5 gap-5 items-center">
-									<img class="w-8" src={token.logoURI} alt="token logo" />
-									<button
-										on:click={() => {
-											defaultToken = token;
-											showTokenDropdown = false;
-											defaultToken.priceUSD = 1.1;
-										}}
-										class="flex flex-col "
-									>
-										<div>{token.symbol}</div>
-										<div class="text-xs text-slate-600">{token.name}</div>
-									</button>
-								</div>
-								{#if token.amount}
-									<div class="flex flex-col mr-5">
-										<div class="text-xs text-slate-100">{token.amount}</div>
-										<div class="text-xs text-slate-100">{`$ ${token.amountUSD}`}</div>
-									</div>
-								{/if}
-							</li>
-						{/each}
-					</ul>
+				<h3 class="text-xl font-pixel ">Long position</h3>
+				<div class="flex flex-col gap-1">
+					<div class="flex flex-row justify-between">
+						<p class="text-base font-pixel">Entry price</p>
+						<p class="text-base font-pixel">{`$${prettyAmount(baseTokenAmount)}`}</p>
+					</div>
+					<div class="flex flex-row justify-between">
+						<p class="text-base font-pixel">Exit price</p>
+						<p class="text-base font-pixel">{`$${prettyAmount(baseTokenAmount)}`}</p>
+					</div>
+					<div class="flex flex-row justify-between">
+						<p class="text-base font-pixel">Borrow fee</p>
+						<p class="text-base font-pixel">{`${borrowFeePerHr}% / 1hr`}</p>
+					</div>
+					<div class="flex flex-row justify-between">
+						<p class="text-base font-pixel">Available liquidity</p>
+						<p class="text-base font-pixel">{`$${prettyAmount(availableLiquidityUSD)}`}</p>
+					</div>
 				</div>
-				<button
-					on:click={() => {
-						showTokenDropdown = !showTokenDropdown;
-					}}
-					class={`flex items-center gap-2 ${showTokenDropdown ? 'hidden' : ''}`}
-				>
-					<img class="w-5" src={defaultToken?.logoURI} />
-					<p>{defaultToken?.symbol}</p>
-				</button>
-				<div class="flex flex-col">
-					<input
-						bind:value={displayAmount}
-						on:keypress={handleAmountChange}
-						placeholder="0.0"
-						name="amount"
-						type="text"
-						class="text-base outline-none text-right bg-transparent placeholder-shown:border-gray-500"
-					/>
-					<p class="text-sm text-slate-600 text-right">{`$ ${defaultTokenPrice}`}</p>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div class="container max-w-lg">
-		<div class="container flex flex-col j">
-			<div class="container flex flex-row justify-between ">
-				<p class="text-base">You short position</p>
-			</div>
-			<div class="container bg-slate-800 py-1 px-2 flex flex-row justify-between rounded-md  ">
-				<div class="flex items-center">
-					<button class="flex items-center gap-2">
-						<img class="w-5" src={defaultToken?.logoURI} />
-						<p>{defaultToken?.symbol}</p>
-					</button>
-				</div>
-				<div class="flex flex-col">
-					<p
-						class="text-base outline-none text-right bg-transparent placeholder-shown:border-gray-500"
-					>
-						{leveragePosition.toString() ?? 0}
-					</p>
-					<p class="text-sm">{`$ ${leveragePositionUSD}`}</p>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div class="container max-w-lg z-1">
-		<div class=" z-1 container flex flex-row justify-between items-center gap-2 ">
-			<Slider
-				class="z-1"
-				bind:value={leverage}
-				tooltip={false}
-				step={5}
-				max={100}
-				ticks={[5, 10, 15, 20, 100]}
-				suffix="%"
-			/>
-
-			<div class="relative ">
-				<input
-					bind:value={leverage}
-					name="amount"
-					type="text"
-					class="px-3 text-base rounded font-pixel text-lg outline-none w-14 text-left bg-slate-800  placeholder-shown:border-gray-500"
-				/>
-				<div class="input-x" />
-			</div>
-		</div>
-	</div>
-
-	<div class="container max-w-lg">
-		{#if $walletStore.connected}
-			<button class="container bg-fuchsia-500 rounded-md">Place Order</button>
-		{:else}
-			<div class="flex  justify-center">
-				<WalletMultiButton>Connect to place order</WalletMultiButton>
 			</div>
 		{/if}
 	</div>

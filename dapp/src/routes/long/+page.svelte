@@ -69,7 +69,13 @@
 					{/each}
 				</div>
 				<div class="w-12 flex justify-center">
-					<img class="cursor-pointer" height="10px" width="auto" src="drop.png" />
+					<img
+						alt="liquidity options"
+						class="cursor-pointer"
+						height="10px"
+						width="auto"
+						src="drop.png"
+					/>
 				</div>
 			</div>
 			<div class="container flex flex-col gap-5">

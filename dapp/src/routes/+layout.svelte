@@ -38,8 +38,9 @@
     <Box>
       <h2>Open positions</h2>
       <p>
-        <span class="text-2xl">0</span> positions
-        
+        <span class="text-2xl" id="position-size">0</span> positions
+        <br />
+        <span class="text-2xl" id="position-profit">0</span> unrealized profit
       </p>
     </Box>
   </div>
@@ -143,6 +144,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+    margin-right: 60px;
+    font-size: 20px;
+    padding: 10px;
+    background-color: black;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
 </style>

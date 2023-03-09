@@ -7,8 +7,11 @@
 	// imported vars
 	export let name: string;
 	export let tokenAmount: string | undefined;
-	export let leverage: number;
 	export let selectedToken: Token;
+	export let leverage: number;
+	export let allowSelectToken: boolean = true;
+	// Allow only specific tokens to be selected
+	export let allowedTokens: string[] | undefined = undefined;
 
 	// local vars
 	let showTokenDropdown = false;
@@ -35,9 +38,12 @@
 
 	tokensStore.subscribe((tokens) => {
 		if (tokens.length > 0) {
-			selectedToken = tokens[0];
+			let allowTokens = tokens;
+			if (allowedTokens)
+				allowTokens = tokens.filter((token) => allowedTokens.includes(token.address));
+			selectedToken = allowTokens[0];
 			selectedToken.priceUSD = 1.1;
-			filteredTokens = tokens;
+			filteredTokens = allowTokens;
 		}
 	});
 
@@ -59,11 +65,11 @@
 	</div>
 	<button
 		on:click={() => {
-			showTokenDropdown = !showTokenDropdown;
+			if (allowSelectToken) showTokenDropdown = !showTokenDropdown;
 		}}
 		class={`flex items-center gap-2 ${showTokenDropdown ? 'hidden' : ''}`}
 	>
-		<img class="w-5" src={selectedToken?.icon} />
+		<img class="w-5" src={selectedToken?.icon} alt="selected token icon" />
 		<p>{selectedToken?.symbol}</p>
 	</button>
 	<div class="flex flex-col">

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 
 	import Header from '../components/header.svelte';
+  import Box from '../components/box.svelte';
 	import { SvelteToast } from '@zerodevx/svelte-toast';
 	import { Metaplex } from '@metaplex-foundation/js';
 	import * as metadata from '@metaplex-foundation/mpl-token-metadata';
@@ -31,16 +32,21 @@
 	};
 </script>
 
-<div class="contaniner flex flex-col gap-20">
-	<Header />
-	<div>
-		<div class="wrapper-app">
-			<div class=" container mx-auto flex flex-col m-6">
-				<slot />
-			</div>
-		</div>
-	</div>
-	<SvelteToast options={toastOptions} />
+<div class="wrapper-app">
+  <Header />
+  <div style="float:right;" id="position-info">
+    <Box>
+      <h2>Open positions</h2>
+      <p>
+        <span class="text-2xl">0</span> positions
+        
+      </p>
+    </Box>
+  </div>
+  <div class="container mx-auto flex flex-col m-6">
+    <slot />
+  </div>
+  <SvelteToast options={toastOptions} />
 </div>
 
 <style style="postcss">
@@ -132,4 +138,11 @@
 		font-size: 20px;
 		margin-bottom: 40px;
 	}
+
+  #position-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
 </style>

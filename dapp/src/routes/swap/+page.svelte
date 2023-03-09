@@ -113,34 +113,10 @@
 						/>
 					</div>
 				</div>
-
-				<div class="container max-w-lg z-1">
-					<div class=" z-1 container flex flex-row justify-between items-center gap-2 ">
-						<Slider
-							class="z-1"
-							bind:value={leverage}
-							tooltip={false}
-							step={5}
-							max={100}
-							ticks={[5, 10, 15, 20, 100]}
-							suffix="%"
-						/>
-
-						<div class="relative ">
-							<input
-								bind:value={leverage}
-								name="amount"
-								type="text"
-								class="px-3 text-base rounded font-pixel text-lg outline-none w-14 text-left bg-slate-800  placeholder-shown:border-gray-500"
-							/>
-							<div class="input-x" />
-						</div>
-					</div>
-				</div>
 			</div>
 			<div class="container max-w-lg">
 				{#if $walletStore.connected}
-					<button class="container bg-fuchsia-500 rounded-md">Place Order</button>
+					<button class="container bg-fuchsia-500 rounded-md">Swap</button>
 				{:else}
 					<div class="flex  justify-center">
 						<WalletMultiButton>Connect to place order</WalletMultiButton>

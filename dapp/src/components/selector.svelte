@@ -4,9 +4,11 @@
 
 	let listRef: HTMLUListElement = null;
 
+	export let title = 'Select pool';
 	export let items: Pool[] = [];
 	export let selectedItem = undefined;
 	export let showDropdown: boolean = false;
+	export let allowRemove: boolean = true;
 
 	let selectedIndex: number = 0;
 	let selectedId: string = '';
@@ -24,10 +26,8 @@
 					selectedIndex -= 1;
 					if (selectedIndex < 0) selectedIndex = 0;
 				}
-				console.log('selectedIndex: ', selectedIndex, 'items.length: ', items.length);
 				selectedIndex = Math.abs(selectedIndex) % items.length;
 			}
-			console.log('selectedIndex: ', selectedIndex, 'filteredItems: ', items[selectedIndex]);
 
 			selectedId = items[selectedIndex].id;
 
@@ -36,7 +36,6 @@
 
 			const currentMod = hoverToken.offsetTop % searchTokenList.clientHeight;
 
-			console.log('currentMod: ', currentMod, 'previousMod: ', previousMod);
 			if (previousMod >= currentMod) {
 				searchTokenList.scrollTo(0, hoverToken.offsetTop);
 			}
@@ -56,7 +55,7 @@
 	<div class="flex flex-row justify-between">
 		<button
 			id="search"
-			placeholder="Select pool"
+			placeholder={title}
 			on:click={() => {
 				showDropdown = !showDropdown;
 				selectedIndex = 0;
@@ -65,25 +64,27 @@
 			class="z-1000  text-slate-200 outline-none text-left bg-transparent placeholder-shown:border-gray-500"
 			><div class="">
 				{#if selectedItem}
-					<p class="font-pixel">{selectedItem.value}</p>
+					<p class="font-pixel">{selectedItem.label}</p>
 				{:else}
-					<p class="font-pixel text-slate-400">Select pool</p>
+					<p class="font-pixel text-slate-400">{title}</p>
 				{/if}
 			</div>
 		</button>
-		<button
-			on:click={() => {
-				selectedIndex = 0;
-				selectedItem = undefined;
-				showDropdown = false;
-			}}>{'x'}</button
-		>
+		{#if allowRemove && selectedItem}
+			<button
+				on:click={() => {
+					selectedIndex = 0;
+					selectedItem = undefined;
+					showDropdown = false;
+				}}>{'x'}</button
+			>
+		{/if}
 	</div>
 
 	<ul
 		bind:this={listRef}
 		id="searchTokenList"
-		class={`flex absolute top-0 left-0 right-0 flex-col h-12  z-10 absolute  w-120 overflow-scroll  bg-slate-800 rounded-md ${
+		class={`flex absolute top-0 left-0 right-0 flex-col h-15  z-10 absolute  w-120 overflow-scroll  bg-slate-800 rounded-md ${
 			showDropdown ? '' : 'hidden'
 		}`}
 	>
@@ -97,7 +98,6 @@
 				}`}
 			>
 				<div
-					class=""
 					on:click={() => {
 						selectedIndex = index;
 						selectedItem = item;

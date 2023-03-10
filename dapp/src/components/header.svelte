@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { WalletMultiButton, WalletProvider } from '@svelte-on-solana/wallet-adapter-ui';
 	import { onMount } from 'svelte';
+	import { getHeliusRPC } from '../helpers';
+	import { network, NETWORKS, type Network } from '../helpers/networkStore';
+	import Selector from './selector.svelte';
 	const localStorageKey = 'walletAdapter';
 	let wallets;
 
@@ -23,6 +26,12 @@
 
 		wallets = walletsMap;
 	});
+
+	let selectedNetwork = $network;
+
+	$: {
+		network.set({ ...selectedNetwork, url: getHeliusRPC(selectedNetwork.value) });
+	}
 </script>
 
 <WalletProvider {localStorageKey} {wallets} autoConnect />
@@ -32,7 +41,24 @@
 		<p class=" px-10 text-lg font-pixel">a PERPETUAL DEX</p>
 	</div>
 
-	<div>
-		<WalletMultiButton />
+	<div class="flex flex-row gap-3 items-center">
+		<div
+			class="flex flex-col gap-0 !w-32 !min-w-32
+		"
+		>
+			<p class="font-pixel text-sm">Network</p>
+			<Selector
+				selectedItem={selectedNetwork}
+				title="Network"
+				items={NETWORKS}
+				allowRemove={false}
+				let:item
+			>
+				<div class="px-10 w-10"><p class="font-pixel text-sm">{item.label}</p></div></Selector
+			>
+		</div>
+		<div>
+			<WalletMultiButton />
+		</div>
 	</div>
 </div>

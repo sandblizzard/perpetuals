@@ -3,7 +3,7 @@ import * as spl from '@solana/spl-token';
 import { BigNumber as BN } from 'bignumber.js';
 export const LP_TOKEN_ADDRESSES = ['123'];
 
-const getHeliusRPC = (cluster: web3.Cluster): string => {
+export const getHeliusRPC = (cluster: web3.Cluster): string => {
 	switch (cluster) {
 		case 'mainnet-beta':
 			return `https://rpc.helius.xyz?api-key=${process.env.HELIUS_API_KEY}`;

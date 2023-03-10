@@ -51,11 +51,10 @@
 				selectedItem={selectedNetwork}
 				title="Network"
 				items={NETWORKS}
+				showDropdown={false}
 				allowRemove={false}
 				let:item
-			>
-				<div class="px-10 w-10"><p class="font-pixel text-sm">{item.label}</p></div></Selector
-			>
+			/>
 		</div>
 		<div>
 			<WalletMultiButton />

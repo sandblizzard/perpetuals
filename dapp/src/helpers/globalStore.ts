@@ -27,9 +27,8 @@ export type TokenMap = Record<string, Token>;
 export const tokensStore = writable<Tokens>([]);
 
 export interface Pool extends SelectorItem {
-	id: string;
-	tvl: string;
-	apr: string;
+	tvl?: string;
+	apr?: string;
 }
 export const defaultPool = writable<Pool>(null);
 
